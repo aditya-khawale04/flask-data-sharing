@@ -1,28 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Live IP Camera Stream</title>
+    <title>Person Detection</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
-        body { text-align: center; background: #000; color: white; }
-        canvas { border: 2px solid white; margin-top: 20px; }
+        body { background: #000; color: #fff; text-align: center; }
+        img { border: 4px solid #fff; margin-top: 20px; width: 720px; height: 480px; }
+        h2 { font-size: 28px; }
     </style>
 </head>
 <body>
-    <h1>Live Stream from IP Camera</h1>
-    <canvas id="canvas" width="640" height="480"></canvas>
+    <h1>Live Person Detection</h1>
+    <h2>Persons Detected: <span id="count">0</span></h2>
+    <img id="video" />
 
     <script>
         const socket = io();
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const img = new Image();
+        const video = document.getElementById('video');
+        const countText = document.getElementById('count');
 
         socket.on('video_frame', function(data) {
-            img.src = 'data:image/jpeg;base64,' + data.image;
-            img.onload = () => {
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            };
+            video.src = 'data:image/jpeg;base64,' + data.image;
+            countText.innerText = data.count;
         });
     </script>
 </body>
