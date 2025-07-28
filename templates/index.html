@@ -1,28 +1,119 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <title>Person Detection</title>
+    <title>Person Safety Monitor</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
-        body { background: #000; color: #fff; text-align: center; }
-        img { border: 4px solid #fff; margin-top: 20px; width: 720px; height: 480px; }
-        h2 { font-size: 28px; }
+        body {
+            background: #000;
+            color: #fff;
+            text-align: center;
+        }
+
+        img {
+            border: 4px solid #fff;
+            margin-top: 20px;
+            width: 720px;
+            height: 480px;
+        }
+
+        h1,
+        h2 {
+            font-family: sans-serif;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .alert {
+            color: red;
+            font-weight: bold;
+        }
+
+        .btn {
+            padding: 10px 5px;
+            font-size: large;
+            font-weight: bold;
+            background-color: red;
+            color: #000;
+            border-radius: 14px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 1155px) {
+            .container {
+                display: flex;
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
+
 <body>
-    <h1>Live Person Detection</h1>
-    <h2>Persons Detected: <span id="count">0</span></h2>
-    <img id="video" />
+    <h1>Human Safety Zone Monitoring</h1>
+    <div class="container">
+        <div class="left-box">
+            <img id="video" />
+        </div>
+        <div class="right-box">
+            <h2>Persons Detected: <span id="count">0</span></h2>
+            <h2 class="alert" id="alert-text">SAFE</h2>
+            <div class="btn" id="alarmBtn">Alert System is OFF</div>
+        </div>
+    </div>
+
 
     <script>
+        const audio = new Audio('static\\alarm.mp3');
+
+        var isAlertSysOn = false;
+
         const socket = io();
         const video = document.getElementById('video');
         const countText = document.getElementById('count');
+        const alertText = document.getElementById('alert-text');
 
-        socket.on('video_frame', function(data) {
+        const alarmBtn = document.getElementById('alarmBtn');
+
+        alarmBtn.addEventListener('click', () => {
+            if (isAlertSysOn === false) {
+                isAlertSysOn = true;
+                alarmBtn.style.backgroundColor = "green";
+                alarmBtn.innerHTML = 'Alert System is ON'
+            } else {
+                isAlertSysOn = false;
+                alarmBtn.style.backgroundColor = "red";
+                alarmBtn.innerHTML = 'Alert System is OFF'
+            }
+        });
+
+
+        function isAlertSysOn() {
+            const alarmRadio = document.getElementById('alarm');
+            return alarmRadio.checked;
+        }
+
+
+
+        socket.on('video_frame', function (data) {
             video.src = 'data:image/jpeg;base64,' + data.image;
             countText.innerText = data.count;
+            alertText.innerText = data.alert ? "ALERT: Person Outside Zone" : "SAFE";
+            alertText.style.color = data.alert ? "red" : "lime";
+            if (isAlertSysOn) {
+                if (data.alert) {
+                    audio.play()
+                    setTimeout(() => {
+                        audio.pause()
+                    }, 5000);
+                }
+            }
         });
     </script>
 </body>
+
 </html>
