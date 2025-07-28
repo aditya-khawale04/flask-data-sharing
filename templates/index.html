@@ -1,24 +1,29 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-    <title>SocketIO Example</title>
+    <title>Live IP Camera Stream</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body { text-align: center; background: #000; color: white; }
+        canvas { border: 2px solid white; margin-top: 20px; }
+    </style>
 </head>
-
 <body>
-    <h1>Value from server: <span id="data">Waiting...</span></h1>
+    <h1>Live Stream from IP Camera</h1>
+    <canvas id="canvas" width="640" height="480"></canvas>
+
     <script>
         const socket = io();
-        try {
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
 
-            socket.on('new_data', function (data) {
-                document.getElementById('data').innerText = data.value;
-            });
-        } catch (e) {
-            console.log(`Error: ${e}`);
-        }
+        socket.on('video_frame', function(data) {
+            img.src = 'data:image/jpeg;base64,' + data.image;
+            img.onload = () => {
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            };
+        });
     </script>
 </body>
-
 </html>
