@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>SocketIO Example</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+
+<body>
+    <h1>Value from server: <span id="data">Waiting...</span></h1>
+    <script>
+        const socket = io();
+        try {
+
+            socket.on('new_data', function (data) {
+                document.getElementById('data').innerText = data.value;
+            });
+        } catch (e) {
+            console.log(`Error: ${e}`);
+        }
+    </script>
+</body>
+
+</html>
