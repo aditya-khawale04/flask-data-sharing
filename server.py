@@ -18,7 +18,7 @@ app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins='*', async_mode='threading')
 
 # Load YOLOv5s model
-model = YOLO("yolov5s.pt")
+model = YOLO("yolov5su.pt")
 PERSON_CLASS_ID = 0
 
 # Your IP camera or local webcam or video file
@@ -106,4 +106,4 @@ def index():
 
 if __name__ == '__main__':
     socketio.start_background_task(target=detect_and_stream)
-    socketio.run(app, host='0.0.0.0', port=3000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=3000)

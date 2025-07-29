@@ -53,7 +53,7 @@
     </style>
 </head>
 
-<body>
+<body id="body">
     <h1>Human Safety Zone Monitoring</h1>
     <div class="container">
         <div class="left-box">
@@ -76,6 +76,7 @@
         const video = document.getElementById('video');
         const countText = document.getElementById('count');
         const alertText = document.getElementById('alert-text');
+        const body = document.getElementById('body');
 
         const alarmBtn = document.getElementById('alarmBtn');
 
@@ -106,8 +107,10 @@
             alertText.style.color = data.alert ? "red" : "lime";
             if (isAlertSysOn) {
                 if (data.alert) {
+                    body.style.backgroundColor = 'red';
                     audio.play()
                     setTimeout(() => {
+                        body.style.backgroundColor = 'black';
                         audio.pause()
                     }, 5000);
                 }
