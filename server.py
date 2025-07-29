@@ -29,11 +29,36 @@ CAMERA_URL = 0  # For laptop webcam
 safe_zone_coords = [(100, 100), (500, 100), (500, 400), (100, 400)]
 safe_zone_polygon = Polygon(safe_zone_coords)
 
+# Global variables for user-drawn polygon
+user_polygon_coords = None
+user_polygon_polygon = None
+use_user_polygon = False
+
 alarm_triggered = False
 
 def buzz_alarm():
     if playsound and os.path.exists("alarm.mp3"):
         playsound("alarm.mp3")  # Add your alarm.mp3 file in same directory
+
+@socketio.on('update_polygon')
+def handle_polygon_update(data):
+    global user_polygon_coords, user_polygon_polygon, use_user_polygon
+    points = data.get('points', [])
+    if len(points) >= 3:
+        # Convert canvas coordinates to image coordinates
+        coords = [(int(point['x']), int(point['y'])) for point in points]
+        user_polygon_coords = coords
+        user_polygon_polygon = Polygon(coords)
+        use_user_polygon = True
+        print(f"Updated polygon with {len(coords)} points: {coords}")
+
+@socketio.on('clear_polygon')
+def handle_polygon_clear(data):
+    global user_polygon_coords, user_polygon_polygon, use_user_polygon
+    user_polygon_coords = None
+    user_polygon_polygon = None
+    use_user_polygon = False
+    print("Polygon cleared")
 
 def detect_and_stream():
     global alarm_triggered
@@ -52,8 +77,21 @@ def detect_and_stream():
         person_count = 0
         alarm_triggered = False
 
+        # Determine which polygon to use
+        current_polygon = None
+        current_coords = None
+        
+        if use_user_polygon and user_polygon_polygon is not None:
+            current_polygon = user_polygon_polygon
+            current_coords = user_polygon_coords
+        else:
+            current_polygon = safe_zone_polygon
+            current_coords = safe_zone_coords
+
         # Draw safe zone
-        cv2.polylines(frame, [np.array(safe_zone_coords, np.int32)], isClosed=True, color=(255, 255, 0), thickness=2)
+        if current_coords:
+            cv2.polylines(frame, [np.array(current_coords, np.int32)], 
+                         isClosed=True, color=(255, 255, 0), thickness=2)
 
         if detections is not None:
             for box in detections:
@@ -66,7 +104,7 @@ def detect_and_stream():
                     center_y = int((y1 + y2) / 2)
 
                     point = Point(center_x, center_y)
-                    inside = safe_zone_polygon.contains(point)
+                    inside = current_polygon.contains(point)
 
                     if not inside:
                         alarm_triggered = True

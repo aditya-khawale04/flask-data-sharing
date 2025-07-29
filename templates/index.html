@@ -42,6 +42,45 @@
             color: #000;
             border-radius: 14px;
             cursor: pointer;
+            margin: 5px;
+        }
+
+        .video-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        #drawingCanvas {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .drawing-active #drawingCanvas {
+            pointer-events: auto;
+            cursor: crosshair;
+        }
+
+        .drawing-active img {
+            opacity: 0.8;
+        }
+
+        .controls {
+            margin: 10px 0;
+        }
+
+        .drawing-btn {
+            background-color: #007bff;
+        }
+
+        .drawing-btn.active {
+            background-color: #28a745;
+        }
+
+        .clear-btn {
+            background-color: #dc3545;
         }
 
         @media (max-width: 1155px) {
@@ -57,7 +96,14 @@
     <h1>Human Safety Zone Monitoring</h1>
     <div class="container">
         <div class="left-box">
-            <img id="video" />
+            <div class="video-container" id="videoContainer">
+                <img id="video" />
+                <canvas id="drawingCanvas" width="720" height="480"></canvas>
+            </div>
+            <div class="controls">
+                <button class="btn drawing-btn" id="drawBtn">Start Drawing</button>
+                <button class="btn clear-btn" id="clearBtn">Clear Polygon</button>
+            </div>
         </div>
         <div class="right-box">
             <h2>Persons Detected: <span id="count">0</span></h2>
@@ -66,19 +112,97 @@
         </div>
     </div>
 
-
     <script>
         const audio = new Audio('static\\alarm.mp3');
 
         var isAlertSysOn = false;
+        var isDrawing = false;
+        var polygonPoints = [];
+        var canvas = document.getElementById('drawingCanvas');
+        var ctx = canvas.getContext('2d');
 
         const socket = io();
         const video = document.getElementById('video');
         const countText = document.getElementById('count');
         const alertText = document.getElementById('alert-text');
         const body = document.getElementById('body');
+        const videoContainer = document.getElementById('videoContainer');
+        const drawBtn = document.getElementById('drawBtn');
+        const clearBtn = document.getElementById('clearBtn');
 
         const alarmBtn = document.getElementById('alarmBtn');
+
+        // Drawing functionality
+        drawBtn.addEventListener('click', () => {
+            isDrawing = !isDrawing;
+            if (isDrawing) {
+                videoContainer.classList.add('drawing-active');
+                drawBtn.classList.add('active');
+                drawBtn.innerHTML = 'Stop Drawing';
+                polygonPoints = [];
+                clearCanvas();
+            } else {
+                videoContainer.classList.remove('drawing-active');
+                drawBtn.classList.remove('active');
+                drawBtn.innerHTML = 'Start Drawing';
+                if (polygonPoints.length >= 3) {
+                    // Send polygon to server
+                    socket.emit('update_polygon', { points: polygonPoints });
+                }
+            }
+        });
+
+        clearBtn.addEventListener('click', () => {
+            polygonPoints = [];
+            clearCanvas();
+            socket.emit('clear_polygon', {});
+        });
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawPolygon() {
+            if (polygonPoints.length < 2) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            for (let i = 0; i < polygonPoints.length; i++) {
+                if (i === 0) {
+                    ctx.moveTo(polygonPoints[i].x, polygonPoints[i].y);
+                } else {
+                    ctx.lineTo(polygonPoints[i].x, polygonPoints[i].y);
+                }
+            }
+            
+            if (polygonPoints.length >= 3) {
+                ctx.closePath();
+            }
+            
+            ctx.stroke();
+            
+            // Draw points
+            ctx.fillStyle = '#00ff00';
+            for (let point of polygonPoints) {
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        }
+
+        canvas.addEventListener('click', (e) => {
+            if (!isDrawing) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            polygonPoints.push({ x: x, y: y });
+            drawPolygon();
+        });
 
         alarmBtn.addEventListener('click', () => {
             if (isAlertSysOn === false) {
@@ -92,13 +216,10 @@
             }
         });
 
-
         function isAlertSysOn() {
             const alarmRadio = document.getElementById('alarm');
             return alarmRadio.checked;
         }
-
-
 
         socket.on('video_frame', function (data) {
             video.src = 'data:image/jpeg;base64,' + data.image;
