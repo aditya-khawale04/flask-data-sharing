@@ -67,6 +67,27 @@ def make_phone_call():
         except Exception as e:
             print("Call failed:", e)
 
+@socketio.on('sos_triggered')
+def handle_sos_triggered(data):
+    """Handle SOS alert triggered after 5-second countdown"""
+    message = data.get('message', 'SOS Alert')
+    location = data.get('location', None)
+    
+    print(f"🚨 {message}")
+    if location:
+        print(f"Location: {location['latitude']}, {location['longitude']}")
+    
+    # Trigger emergency actions
+    threading.Thread(target=buzz_alarm).start()
+    threading.Thread(target=make_phone_call).start()
+    
+    # Broadcast SOS alert to all connected clients
+    socketio.emit('sos_alert', {
+        'message': message,
+        'location': location,
+        'timestamp': time.time()
+    })
+
 @socketio.on('update_polygon')
 def handle_polygon_update(data):
     global user_polygon_coords, user_polygon_polygon, use_user_polygon
