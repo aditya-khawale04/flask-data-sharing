@@ -1,243 +1,240 @@
 <!DOCTYPE html>
 <html>
-
-<head>
+  <head>
     <title>Person Safety Monitor</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
-        body {
-            background: #000;
-            color: #fff;
-            text-align: center;
-        }
+      body {
+        background: #000;
+        color: #fff;
+        text-align: center;
+      }
 
-        img {
-            border: 4px solid #fff;
-            margin-top: 20px;
-            width: 720px;
-            height: 480px;
-        }
+      img {
+        border: 4px solid #fff;
+        margin-top: 20px;
+        width: 720px;
+        height: 480px;
+      }
 
-        h1,
-        h2 {
-            font-family: sans-serif;
-        }
+      h1,
+      h2 {
+        font-family: sans-serif;
+      }
 
+      .container {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .alert {
+        color: red;
+        font-weight: bold;
+      }
+
+      .btn {
+        padding: 10px 5px;
+        font-size: large;
+        font-weight: bold;
+        background-color: red;
+        color: #000;
+        border-radius: 14px;
+        cursor: pointer;
+        margin: 5px;
+      }
+
+      .video-container {
+        position: relative;
+        display: inline-block;
+      }
+
+      #drawingCanvas {
+        position: absolute;
+        top: 20px;
+        left: 0;
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      .drawing-active #drawingCanvas {
+        pointer-events: auto;
+        cursor: crosshair;
+      }
+
+      .drawing-active img {
+        opacity: 0.8;
+      }
+
+      .controls {
+        margin: 10px 0;
+      }
+
+      .drawing-btn {
+        background-color: #007bff;
+      }
+
+      .drawing-btn.active {
+        background-color: #28a745;
+      }
+
+      .clear-btn {
+        background-color: #dc3545;
+      }
+
+      @media (max-width: 1155px) {
         .container {
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
+          flex-direction: column;
         }
-
-        .alert {
-            color: red;
-            font-weight: bold;
-        }
-
-        .btn {
-            padding: 10px 5px;
-            font-size: large;
-            font-weight: bold;
-            background-color: red;
-            color: #000;
-            border-radius: 14px;
-            cursor: pointer;
-            margin: 5px;
-        }
-
-        .video-container {
-            position: relative;
-            display: inline-block;
-        }
-
-        #drawingCanvas {
-            position: absolute;
-            top: 20px;
-            left: 0;
-            pointer-events: none;
-            z-index: 10;
-        }
-
-        .drawing-active #drawingCanvas {
-            pointer-events: auto;
-            cursor: crosshair;
-        }
-
-        .drawing-active img {
-            opacity: 0.8;
-        }
-
-        .controls {
-            margin: 10px 0;
-        }
-
-        .drawing-btn {
-            background-color: #007bff;
-        }
-
-        .drawing-btn.active {
-            background-color: #28a745;
-        }
-
-        .clear-btn {
-            background-color: #dc3545;
-        }
-
-        @media (max-width: 1155px) {
-            .container {
-                display: flex;
-                flex-direction: column;
-            }
-        }
+      }
     </style>
-</head>
-
-<body id="body">
+  </head>
+  <body id="body">
     <h1>Human Safety Zone Monitoring</h1>
     <div class="container">
-        <div class="left-box">
-            <div class="video-container" id="videoContainer">
-                <img id="video" />
-                <canvas id="drawingCanvas" width="720" height="480"></canvas>
-            </div>
-            <div class="controls">
-                <button class="btn drawing-btn" id="drawBtn">Start Drawing</button>
-                <button class="btn clear-btn" id="clearBtn">Clear Polygon</button>
-            </div>
+      <div class="left-box">
+        <div class="video-container" id="videoContainer">
+          <img id="video" />
+          <canvas id="drawingCanvas" width="720" height="480"></canvas>
         </div>
-        <div class="right-box">
-            <h2>Persons Detected: <span id="count">0</span></h2>
-            <h2 class="alert" id="alert-text">SAFE</h2>
-            <div class="btn" id="alarmBtn">Alert System is OFF</div>
+        <div class="controls">
+          <button class="btn drawing-btn" id="drawBtn">Start Drawing</button>
+          <button class="btn clear-btn" id="clearBtn">Clear Polygon</button>
         </div>
+      </div>
+      <div class="right-box">
+        <h2>Persons Detected: <span id="count">0</span></h2>
+        <h2 class="alert" id="alert-text">SAFE</h2>
+        <div class="btn" id="alarmBtn">Alert System is OFF</div>
+        <div class="btn" id="sosBtn">Send SOS Alert</div>
+      </div>
     </div>
 
     <script>
-        const audio = new Audio('static\\alarm.mp3');
+      const audio = new Audio("static/alarm.mp3");
+      let isAlertSysOn = false;
+      let isDrawing = false;
+      let polygonPoints = [];
+      const canvas = document.getElementById("drawingCanvas");
+      const ctx = canvas.getContext("2d");
 
-        var isAlertSysOn = false;
-        var isDrawing = false;
-        var polygonPoints = [];
-        var canvas = document.getElementById('drawingCanvas');
-        var ctx = canvas.getContext('2d');
+      const socket = io();
+      const video = document.getElementById("video");
+      const countText = document.getElementById("count");
+      const alertText = document.getElementById("alert-text");
+      const body = document.getElementById("body");
+      const videoContainer = document.getElementById("videoContainer");
+      const drawBtn = document.getElementById("drawBtn");
+      const clearBtn = document.getElementById("clearBtn");
+      const alarmBtn = document.getElementById("alarmBtn");
+      const sosBtn = document.getElementById("sosBtn");
 
-        const socket = io();
-        const video = document.getElementById('video');
-        const countText = document.getElementById('count');
-        const alertText = document.getElementById('alert-text');
-        const body = document.getElementById('body');
-        const videoContainer = document.getElementById('videoContainer');
-        const drawBtn = document.getElementById('drawBtn');
-        const clearBtn = document.getElementById('clearBtn');
-
-        const alarmBtn = document.getElementById('alarmBtn');
-
-        // Drawing functionality
-        drawBtn.addEventListener('click', () => {
-            isDrawing = !isDrawing;
-            if (isDrawing) {
-                videoContainer.classList.add('drawing-active');
-                drawBtn.classList.add('active');
-                drawBtn.innerHTML = 'Stop Drawing';
-                polygonPoints = [];
-                clearCanvas();
-            } else {
-                videoContainer.classList.remove('drawing-active');
-                drawBtn.classList.remove('active');
-                drawBtn.innerHTML = 'Start Drawing';
-                if (polygonPoints.length >= 3) {
-                    // Send polygon to server
-                    socket.emit('update_polygon', { points: polygonPoints });
-                }
-            }
-        });
-
-        clearBtn.addEventListener('click', () => {
-            polygonPoints = [];
-            clearCanvas();
-            socket.emit('clear_polygon', {});
-        });
-
-        function clearCanvas() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBtn.addEventListener("click", () => {
+        isDrawing = !isDrawing;
+        if (isDrawing) {
+          videoContainer.classList.add("drawing-active");
+          drawBtn.classList.add("active");
+          drawBtn.innerHTML = "Stop Drawing";
+          polygonPoints = [];
+          clearCanvas();
+        } else {
+          videoContainer.classList.remove("drawing-active");
+          drawBtn.classList.remove("active");
+          drawBtn.innerHTML = "Start Drawing";
+          if (polygonPoints.length >= 3) {
+            socket.emit("update_polygon", { points: polygonPoints });
+          }
         }
+      });
 
-        function drawPolygon() {
-            if (polygonPoints.length < 2) return;
-            
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.strokeStyle = '#00ff00';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            
-            for (let i = 0; i < polygonPoints.length; i++) {
-                if (i === 0) {
-                    ctx.moveTo(polygonPoints[i].x, polygonPoints[i].y);
-                } else {
-                    ctx.lineTo(polygonPoints[i].x, polygonPoints[i].y);
-                }
+      clearBtn.addEventListener("click", () => {
+        polygonPoints = [];
+        clearCanvas();
+        socket.emit("clear_polygon", {});
+      });
+
+      function clearCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+
+      function drawPolygon() {
+        if (polygonPoints.length < 2) return;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = "#00ff00";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+
+        polygonPoints.forEach((pt, i) => {
+          i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
+        });
+
+        if (polygonPoints.length >= 3) ctx.closePath();
+        ctx.stroke();
+
+        ctx.fillStyle = "#00ff00";
+        polygonPoints.forEach((pt) => {
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 5, 0, 2 * Math.PI);
+          ctx.fill();
+        });
+      }
+
+      canvas.addEventListener("click", (e) => {
+        if (!isDrawing) return;
+        const rect = canvas.getBoundingClientRect();
+        polygonPoints.push({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+        drawPolygon();
+      });
+
+      alarmBtn.addEventListener("click", () => {
+        isAlertSysOn = !isAlertSysOn;
+        alarmBtn.style.backgroundColor = isAlertSysOn ? "green" : "red";
+        alarmBtn.innerHTML = isAlertSysOn ? "Alert System is ON" : "Alert System is OFF";
+      });
+
+      sosBtn.addEventListener("click", () => {
+        sosBtn.innerText = "⏳ Sending SOS...";
+        sosBtn.disabled = true;
+        setTimeout(() => {
+          audio.play();
+          sosBtn.innerText = "🔴 Send SOS Alert";
+          sosBtn.disabled = false;
+        }, 3000);
+
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              const { latitude, longitude } = pos.coords;
+              socket.emit("sos_triggered", { message: "SOS button clicked!", location: { latitude, longitude } });
+              fetch("/call", { method: "POST" });
+            },
+            () => {
+              socket.emit("sos_triggered", { message: "SOS button clicked!", location: null });
+              fetch("/call", { method: "POST" });
             }
-            
-            if (polygonPoints.length >= 3) {
-                ctx.closePath();
-            }
-            
-            ctx.stroke();
-            
-            // Draw points
-            ctx.fillStyle = '#00ff00';
-            for (let point of polygonPoints) {
-                ctx.beginPath();
-                ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
-                ctx.fill();
-            }
+          );
+        } else {
+          socket.emit("sos_triggered", { message: "SOS button clicked!", location: null });
+          fetch("/call", { method: "POST" });
         }
+      });
 
-        canvas.addEventListener('click', (e) => {
-            if (!isDrawing) return;
-            
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            polygonPoints.push({ x: x, y: y });
-            drawPolygon();
-        });
-
-        alarmBtn.addEventListener('click', () => {
-            if (isAlertSysOn === false) {
-                isAlertSysOn = true;
-                alarmBtn.style.backgroundColor = "green";
-                alarmBtn.innerHTML = 'Alert System is ON'
-            } else {
-                isAlertSysOn = false;
-                alarmBtn.style.backgroundColor = "red";
-                alarmBtn.innerHTML = 'Alert System is OFF'
-            }
-        });
-
-        function isAlertSysOn() {
-            const alarmRadio = document.getElementById('alarm');
-            return alarmRadio.checked;
+      socket.on("video_frame", (data) => {
+        video.src = "data:image/jpeg;base64," + data.image;
+        countText.innerText = data.count;
+        alertText.innerText = data.alert ? "ALERT: Person Outside Zone" : "SAFE";
+        alertText.style.color = data.alert ? "red" : "lime";
+        if (isAlertSysOn && data.alert) {
+          body.style.backgroundColor = "red";
+          audio.play();
+          setTimeout(() => {
+            body.style.backgroundColor = "black";
+            audio.pause();
+          }, 5000);
         }
-
-        socket.on('video_frame', function (data) {
-            video.src = 'data:image/jpeg;base64,' + data.image;
-            countText.innerText = data.count;
-            alertText.innerText = data.alert ? "ALERT: Person Outside Zone" : "SAFE";
-            alertText.style.color = data.alert ? "red" : "lime";
-            if (isAlertSysOn) {
-                if (data.alert) {
-                    body.style.backgroundColor = 'red';
-                    audio.play()
-                    setTimeout(() => {
-                        body.style.backgroundColor = 'black';
-                        audio.pause()
-                    }, 5000);
-                }
-            }
-        });
+      });
     </script>
-</body>
-
+  </body>
 </html>
