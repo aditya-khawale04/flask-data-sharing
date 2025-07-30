@@ -9,6 +9,7 @@ from shapely.geometry import Point, Polygon
 import threading
 import os
 from dotenv import load_dotenv
+from twilio.rest import Client
 
 # Optional alarm sound
 try:
@@ -23,11 +24,7 @@ TWILIO_TOKEN = os.getenv("TWILIO_TOKEN")
 TWILIO_FROM = '+17697596183'
 TWILIO_TO = '+919156662372'
 
-try:
-    from twilio.rest import Client
-    twilio_client = Client(TWILIO_SID, TWILIO_TOKEN)
-except:
-    twilio_client = None
+twilio_client = Client(TWILIO_SID, TWILIO_TOKEN)
 
 # Flask app setup
 app = Flask(__name__)

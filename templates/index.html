@@ -1,146 +1,253 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Person Safety Monitor</title>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <style>
-      body {
-        background: #000;
-        color: #fff;
-        text-align: center;
+
+<head>
+  <title>Person Safety Monitor</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    body {
+      background: white;
+      color: black;
+      text-align: center;
+    }
+
+    img {
+      border: 4px solid #fff;
+      margin-top: 20px;
+      width: 720px;
+      height: 480px;
+    }
+
+    h1,
+    h2 {
+      font-family: sans-serif;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      flex-wrap: wrap;
+    }
+
+    .alert {
+      color: red;
+      font-weight: bold;
+    }
+
+    .btn {
+      padding: 10px 5px;
+      font-size: large;
+      font-weight: bold;
+      background-color: red;
+      color: #000;
+      border-radius: 14px;
+      cursor: pointer;
+      margin: 5px;
+      border: none;
+      transition: all 0.3s ease;
+    }
+
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    /* .video-container {
+      position: relative;
+      display: inline-block;
+      border: 5px solid #C7C7C7;
+      background-color: #637ec4;
+      border-radius: 30px;
+    } */
+
+    img {
+      display: block;
+      width: 100%;
+      height: auto;
+      position: relative;
+      display: inline-block;
+      border: 5px solid #C7C7C7;
+      background-color: #637ec4;
+      border-radius: 30px;
+    }
+
+    #drawingCanvas {
+      position: absolute;
+      top: 20px;
+      left: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .drawing-active #drawingCanvas {
+      pointer-events: auto;
+      cursor: crosshair;
+    }
+
+    .drawing-active img {
+      opacity: 0.8;
+    }
+
+    .controls {
+      margin: 10px 0;
+    }
+
+    .drawing-btn {
+      background-color: #007bff;
+    }
+
+    .drawing-btn.active {
+      background-color: #28a745;
+    }
+
+    .clear-btn {
+      background-color: #dc3545;
+    }
+
+    .sos-btn {
+      background-color: #dc3545;
+      font-size: 18px;
+      padding: 15px 20px;
+      animation: pulse 2s infinite;
+    }
+
+    .sos-btn.countdown {
+      background-color: #ff6b35;
+      animation: countdown-pulse 1s infinite;
+    }
+
+    .sos-btn.cancel {
+      background-color: #ffc107;
+      color: #000;
+      animation: none;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
       }
 
-      img {
-        border: 4px solid #fff;
-        margin-top: 20px;
-        width: 720px;
-        height: 480px;
+      50% {
+        transform: scale(1.05);
       }
 
-      h1,
-      h2 {
-        font-family: sans-serif;
+      100% {
+        transform: scale(1);
       }
+    }
 
-      .container {
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        flex-wrap: wrap;
-      }
+    .container .box {
+      width: 100px;
+      height: 100px;
+      background-color: #fff;
+      border-radius: 10px;
+      margin: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
 
-      .alert {
-        color: red;
-        font-weight: bold;
-      }
+    .top-box {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
 
-      .btn {
-        padding: 10px 5px;
-        font-size: large;
-        font-weight: bold;
-        background-color: red;
-        color: #000;
-        border-radius: 14px;
-        cursor: pointer;
-        margin: 5px;
-        border: none;
-        transition: all 0.3s ease;
-      }
+    .card-container {
+      display: flex;
+      gap: 10px
+    }
 
-      .btn:disabled {
-        cursor: not-allowed;
-        opacity: 0.7;
-      }
+    .status-card {
+      width: 240px;
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      text-align: center;
+      transition: transform 0.2s ease;
+    }
 
-      .video-container {
-        position: relative;
-        display: inline-block;
-      }
+    .status-card:hover {
+      transform: scale(1.03);
+    }
 
-      #drawingCanvas {
-        position: absolute;
-        top: 20px;
-        left: 0;
-        pointer-events: none;
-        z-index: 10;
-      }
+    .danger {
+      background-color: #ffe5e5;
+      color: #d60000;
+      border: 1px solid #ffcccc;
+    }
 
-      .drawing-active #drawingCanvas {
-        pointer-events: auto;
-        cursor: crosshair;
-      }
+    .info {
+      background-color: #e0f0ff;
+      color: #007acc;
+      border: 1px solid #c0e0ff;
+    }
 
-      .drawing-active img {
-        opacity: 0.8;
-      }
+    .update {
+      background-color: #fff1d6;
+      color: #c77700;
+      border: 1px solid #ffe4b3;
+    }
 
-      .controls {
-        margin: 10px 0;
-      }
+    .icon {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
 
-      .drawing-btn {
-        background-color: #007bff;
-      }
+    .label {
+      font-weight: 600;
+      font-size: 16px;
+    }
 
-      .drawing-btn.active {
-        background-color: #28a745;
-      }
+    .value {
+      font-weight: bold;
+      font-size: 20px;
+      margin-top: 5px;
+    }
 
-      .clear-btn {
-        background-color: #dc3545;
-      }
-
-      .sos-btn {
-        background-color: #dc3545;
-        font-size: 18px;
-        padding: 15px 20px;
-        animation: pulse 2s infinite;
-      }
-
-      .sos-btn.countdown {
+    @keyframes countdown-pulse {
+      0% {
+        transform: scale(1);
         background-color: #ff6b35;
-        animation: countdown-pulse 1s infinite;
       }
 
-      .sos-btn.cancel {
-        background-color: #ffc107;
-        color: #000;
-        animation: none;
+      50% {
+        transform: scale(1.1);
+        background-color: #ff4757;
       }
 
-      @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-        100% { transform: scale(1); }
+      100% {
+        transform: scale(1);
+        background-color: #ff6b35;
+      }
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
       }
 
-      @keyframes countdown-pulse {
-        0% { transform: scale(1); background-color: #ff6b35; }
-        50% { transform: scale(1.1); background-color: #ff4757; }
-        100% { transform: scale(1); background-color: #ff6b35; }
+      to {
+        transform: translateX(0);
+        opacity: 1;
       }
+    }
 
-      @keyframes slideIn {
-        from {
-          transform: translateX(100%);
-          opacity: 0;
-        }
-        to {
-          transform: translateX(0);
-          opacity: 1;
-        }
-      }
 
-      @media (max-width: 1155px) {
-        .container {
-          flex-direction: column;
-        }
+    @media (max-width: 1155px) {
+      .container {
+        flex-direction: column;
       }
-    </style>
-  </head>
-  <body id="body">
-    <h1>Human Safety Zone Monitoring</h1>
-    <div class="container">
+    }
+  </style>
+</head>
+
+<body id="body">
+  <h1>Human Safety Zone Monitoring</h1>
+  <div class="container">
+    <div class="top-box">
       <div class="left-box">
         <div class="video-container" id="videoContainer">
           <img id="video" />
@@ -151,204 +258,234 @@
           <button class="btn clear-btn" id="clearBtn">Clear Polygon</button>
         </div>
       </div>
+
       <div class="right-box">
-        <h2>Persons Detected: <span id="count">0</span></h2>
+        <!-- <h2>Persons Detected: <span id="count">0</span></h2> -->
         <h2 class="alert" id="alert-text">SAFE</h2>
         <div class="btn" id="alarmBtn">Alert System is OFF</div>
         <div class="btn sos-btn" id="sosBtn">🚨 Send SOS Alert</div>
       </div>
     </div>
+    <div class="card-container">
+      <!-- Card 1: Danger Zone -->
+      <div class="status-card danger">
+        <div class="icon"><i class="fas fa-shield-alt"></i></div>
+        <div class="label">Detected Zone</div>
+        <div class="value">Danger</div>
+      </div>
 
-    <script>
-      const audio = new Audio("static/alarm.mp3");
-      let isAlertSysOn = false;
-      let isDrawing = false;
-      let polygonPoints = [];
-      let sosCountdown = null;
-      let sosTimer = null;
-      const canvas = document.getElementById("drawingCanvas");
-      const ctx = canvas.getContext("2d");
+      <!-- Card 2: People Detected -->
+      <div class="status-card info">
+        <div class="icon"><i class="fas fa-user-friends"></i></div>
+        <div class="label">People Detected</div>
+        <div class="value" id="count">6</div>
+      </div>
 
-      const socket = io();
-      const video = document.getElementById("video");
-      const countText = document.getElementById("count");
-      const alertText = document.getElementById("alert-text");
-      const body = document.getElementById("body");
-      const videoContainer = document.getElementById("videoContainer");
-      const drawBtn = document.getElementById("drawBtn");
-      const clearBtn = document.getElementById("clearBtn");
-      const alarmBtn = document.getElementById("alarmBtn");
-      const sosBtn = document.getElementById("sosBtn");
+      <!-- Card 3: Last Update -->
+      <div class="status-card update">
+        <div class="icon"><i class="fas fa-clock"></i></div>
+        <div class="label">Last Update</div>
+        <div class="value">--:--</div>
+      </div>
+    </div>
+  </div>
 
-      // SOS functionality
-      function startSOSCountdown() {
-        let countdown = 5;
-        sosBtn.classList.add('countdown');
-        sosBtn.disabled = true;
-        
-        function updateCountdown() {
-          if (countdown > 0) {
-            sosBtn.innerHTML = `⏳ Canceling in ${countdown}s...`;
-            countdown--;
-            sosCountdown = setTimeout(updateCountdown, 1000);
-          } else {
-            // SOS triggered after 5 seconds
-            triggerSOS();
-          }
-        }
-        
-        updateCountdown();
-      }
+  <script>
+    const audio = new Audio("static/alarm.mp3");
+    let isAlertSysOn = false;
+    let isDrawing = false;
+    let polygonPoints = [];
+    let sosCountdown = null;
+    let sosTimer = null;
+    const canvas = document.getElementById("drawingCanvas");
+    const ctx = canvas.getContext("2d");
 
-      function cancelSOS() {
-        if (sosCountdown) {
-          clearTimeout(sosCountdown);
-          sosCountdown = null;
-        }
-        if (sosTimer) {
-          clearTimeout(sosTimer);
-          sosTimer = null;
-        }
-        
-        sosBtn.classList.remove('countdown');
-        sosBtn.classList.remove('cancel');
-        sosBtn.disabled = false;
-        sosBtn.innerHTML = '🚨 Send SOS Alert';
-      }
+    const socket = io();
+    const video = document.getElementById("video");
+    const countText = document.getElementById("count");
+    const alertText = document.getElementById("alert-text");
+    const body = document.getElementById("body");
+    const videoContainer = document.getElementById("videoContainer");
+    const drawBtn = document.getElementById("drawBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const alarmBtn = document.getElementById("alarmBtn");
+    const sosBtn = document.getElementById("sosBtn");
 
-      function triggerSOS() {
-        sosBtn.classList.remove('countdown');
-        sosBtn.classList.add('cancel');
-        sosBtn.innerHTML = '🔴 SOS SENT!';
-        
-        // Play alarm sound
-        audio.play();
-        
-        // Send SOS to server
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              const { latitude, longitude } = pos.coords;
-              socket.emit("sos_triggered", { 
-                message: "SOS ALERT TRIGGERED!", 
-                location: { latitude, longitude } 
-              });
-            },
-            () => {
-              socket.emit("sos_triggered", { 
-                message: "SOS ALERT TRIGGERED!", 
-                location: null 
-              });
-            }
-          );
+    // SOS functionality
+    function startSOSCountdown() {
+      let countdown = 5;
+      sosBtn.classList.add('countdown');
+      sosBtn.disabled = true;
+
+
+      function updateCountdown() {
+        if (countdown > 0) {
+          sosBtn.innerHTML = `⏳ Canceling in ${countdown}s...`;
+          countdown--;
+          sosCountdown = setTimeout(updateCountdown, 1000);
         } else {
-          socket.emit("sos_triggered", { 
-            message: "SOS ALERT TRIGGERED!", 
-            location: null 
+          // SOS triggered after 5 seconds
+          triggerSOS();
+        }
+      }
+
+      updateCountdown();
+    }
+
+    function cancelSOS() {
+      if (sosCountdown) {
+        clearTimeout(sosCountdown);
+        sosCountdown = null;
+      }
+      if (sosTimer) {
+        clearTimeout(sosTimer);
+        sosTimer = null;
+      }
+
+      sosBtn.classList.remove('countdown');
+      sosBtn.classList.remove('cancel');
+      sosBtn.disabled = false;
+      sosBtn.innerHTML = '🚨 Send SOS Alert';
+    }
+
+    function triggerSOS() {
+      sosBtn.classList.remove('countdown');
+      sosBtn.classList.add('cancel');
+      sosBtn.innerHTML = '🔴 SOS SENT!';
+
+      // Play alarm sound
+      audio.play();
+
+      // Send SOS to server
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const { latitude, longitude } = pos.coords;
+            socket.emit("sos_triggered", {
+              message: "SOS ALERT TRIGGERED!",
+              location: { latitude, longitude }
+            });
+          },
+          () => {
+            socket.emit("sos_triggered", {
+              message: "SOS ALERT TRIGGERED!",
+              location: null
+            });
+          }
+        );
+      } else {
+        socket.emit("sos_triggered", {
+          message: "SOS ALERT TRIGGERED!",
+          location: null
+        });
+      }
+
+      // Reset button after 3 seconds
+      sosTimer = setTimeout(() => {
+        cancelSOS();
+      }, 3000);
+    }
+
+    sosBtn.addEventListener("click", () => {
+      if (!sosBtn.disabled) {
+        fetch("/call", { method: "POST" })
+          .then((res) => res.json())
+          .then((data) => {
+            console.log(data.status);
           });
-        }
-        
-        // Reset button after 3 seconds
-        sosTimer = setTimeout(() => {
-          cancelSOS();
-        }, 3000);
+        startSOSCountdown();
+      } else if (sosBtn.classList.contains('countdown')) {
+        // Cancel SOS during countdown
+        cancelSOS();
       }
+    });
 
-      sosBtn.addEventListener("click", () => {
-        if (!sosBtn.disabled) {
-          startSOSCountdown();
-        } else if (sosBtn.classList.contains('countdown')) {
-          // Cancel SOS during countdown
-          cancelSOS();
-        }
-      });
-
-      drawBtn.addEventListener("click", () => {
-        isDrawing = !isDrawing;
-        if (isDrawing) {
-          videoContainer.classList.add("drawing-active");
-          drawBtn.classList.add("active");
-          drawBtn.innerHTML = "Stop Drawing";
-          polygonPoints = [];
-          clearCanvas();
-        } else {
-          videoContainer.classList.remove("drawing-active");
-          drawBtn.classList.remove("active");
-          drawBtn.innerHTML = "Start Drawing";
-          if (polygonPoints.length >= 3) {
-            socket.emit("update_polygon", { points: polygonPoints });
-          }
-        }
-      });
-
-      clearBtn.addEventListener("click", () => {
+    drawBtn.addEventListener("click", () => {
+      isDrawing = !isDrawing;
+      if (isDrawing) {
+        videoContainer.classList.add("drawing-active");
+        drawBtn.classList.add("active");
+        drawBtn.innerHTML = "Stop Drawing";
         polygonPoints = [];
         clearCanvas();
-        socket.emit("clear_polygon", {});
-      });
-
-      function clearCanvas() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-
-      function drawPolygon() {
-        if (polygonPoints.length < 2) return;
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = "#00ff00";
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-
-        polygonPoints.forEach((pt, i) => {
-          i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
-        });
-
-        if (polygonPoints.length >= 3) ctx.closePath();
-        ctx.stroke();
-
-        ctx.fillStyle = "#00ff00";
-        polygonPoints.forEach((pt) => {
-          ctx.beginPath();
-          ctx.arc(pt.x, pt.y, 5, 0, 2 * Math.PI);
-          ctx.fill();
-        });
-      }
-
-      canvas.addEventListener("click", (e) => {
-        if (!isDrawing) return;
-        const rect = canvas.getBoundingClientRect();
-        polygonPoints.push({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-        drawPolygon();
-      });
-
-      alarmBtn.addEventListener("click", () => {
-        isAlertSysOn = !isAlertSysOn;
-        alarmBtn.style.backgroundColor = isAlertSysOn ? "green" : "red";
-        alarmBtn.innerHTML = isAlertSysOn ? "Alert System is ON" : "Alert System is OFF";
-      });
-
-      socket.on("video_frame", (data) => {
-        video.src = "data:image/jpeg;base64," + data.image;
-        countText.innerText = data.count;
-        alertText.innerText = data.alert ? "ALERT: Person Outside Zone" : "SAFE";
-        alertText.style.color = data.alert ? "red" : "lime";
-        if (isAlertSysOn && data.alert) {
-          body.style.backgroundColor = "red";
-          audio.play();
-          setTimeout(() => {
-            body.style.backgroundColor = "black";
-            audio.pause();
-          }, 5000);
+      } else {
+        videoContainer.classList.remove("drawing-active");
+        drawBtn.classList.remove("active");
+        drawBtn.innerHTML = "Start Drawing";
+        if (polygonPoints.length >= 3) {
+          socket.emit("update_polygon", { points: polygonPoints });
         }
+      }
+    });
+
+    clearBtn.addEventListener("click", () => {
+      polygonPoints = [];
+      clearCanvas();
+      socket.emit("clear_polygon", {});
+    });
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function drawPolygon() {
+      if (polygonPoints.length < 2) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "#00ff00";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+
+      polygonPoints.forEach((pt, i) => {
+        i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
       });
 
-      // Handle SOS alerts from server
-      socket.on("sos_alert", (data) => {
-        console.log("🚨 SOS Alert received:", data);
-        
-        // Show emergency notification
-        const notification = document.createElement('div');
-        notification.style.cssText = `
+      if (polygonPoints.length >= 3) ctx.closePath();
+      ctx.stroke();
+
+      ctx.fillStyle = "#00ff00";
+      polygonPoints.forEach((pt) => {
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 5, 0, 2 * Math.PI);
+        ctx.fill();
+      });
+    }
+
+    canvas.addEventListener("click", (e) => {
+      if (!isDrawing) return;
+      const rect = canvas.getBoundingClientRect();
+      polygonPoints.push({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+      drawPolygon();
+    });
+
+    alarmBtn.addEventListener("click", () => {
+      isAlertSysOn = !isAlertSysOn;
+      alarmBtn.style.backgroundColor = isAlertSysOn ? "green" : "red";
+      alarmBtn.innerHTML = isAlertSysOn ? "Alert System is ON" : "Alert System is OFF";
+    });
+
+    socket.on("video_frame", (data) => {
+      video.src = "data:image/jpeg;base64," + data.image;
+      countText.innerText = `${data.count}`;
+      alertText.innerText = data.alert ? "ALERT: Person Outside Zone" : "SAFE";
+      alertText.style.color = data.alert ? "red" : "lime";
+      if (isAlertSysOn && data.alert) {
+        body.style.backgroundColor = "red";
+        audio.play();
+        setTimeout(() => {
+          body.style.backgroundColor = "white";
+          audio.pause();
+        }, 5000);
+      }
+    });
+
+    // Handle SOS alerts from server
+    socket.on("sos_alert", (data) => {
+      console.log("🚨 SOS Alert received:", data);
+
+      // Show emergency notification
+      const notification = document.createElement('div');
+      notification.style.cssText = `
           position: fixed;
           top: 20px;
           right: 20px;
@@ -362,21 +499,22 @@
           box-shadow: 0 4px 8px rgba(0,0,0,0.3);
           animation: slideIn 0.5s ease;
         `;
-        notification.innerHTML = `
+      notification.innerHTML = `
           🚨 EMERGENCY SOS ALERT!<br>
           ${data.message}<br>
           ${data.location ? `Location: ${data.location.latitude.toFixed(4)}, ${data.location.longitude.toFixed(4)}` : 'Location unavailable'}
         `;
-        
-        document.body.appendChild(notification);
-        
-        // Remove notification after 10 seconds
-        setTimeout(() => {
-          if (notification.parentNode) {
-            notification.parentNode.removeChild(notification);
-          }
-        }, 10000);
-      });
-    </script>
-  </body>
+
+      document.body.appendChild(notification);
+
+      // Remove notification after 10 seconds
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 10000);
+    });
+  </script>
+</body>
+
 </html>
