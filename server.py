@@ -17,7 +17,7 @@ try:
 except:
     playsound = None
 
-# Load Twilio credentials from .env
+# Load environment variables
 load_dotenv()
 TWILIO_SID = os.getenv("TWILIO_SID")
 TWILIO_TOKEN = os.getenv("TWILIO_TOKEN")
@@ -26,16 +26,16 @@ TWILIO_TO = '+919156662372'
 
 twilio_client = Client(TWILIO_SID, TWILIO_TOKEN)
 
-# Flask app setup
+# Initialize Flask & SocketIO
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins='*', async_mode='threading')
 
 # Load YOLOv5 model
 model = YOLO("yolov5su.pt")
 PERSON_CLASS_ID = 0
-CAMERA_URL = 0  # Use 0 for default webcam
+CAMERA_URL = 0  # 0 = default webcam
 
-# Default polygon
+# Polygon zone
 default_zone_coords = [(100, 100), (500, 100), (500, 400), (100, 400)]
 default_zone_polygon = Polygon(default_zone_coords)
 
@@ -46,44 +46,27 @@ use_user_polygon = False
 
 # Alert states
 alert_sent = False
-alarm_triggered = False
 
 def buzz_alarm():
     if playsound and os.path.exists("alarm.mp3"):
         playsound("alarm.mp3")
 
 def make_phone_call():
-    if twilio_client:
-        try:
-            call = twilio_client.calls.create(
-                to=TWILIO_TO,
-                from_=TWILIO_FROM,
-                twiml='<Response><Say>This is an emergency alert. A person has entered the danger zone.</Say></Response>'
-            )
-            print("Call initiated:", call.sid)
-        except Exception as e:
-            print("Call failed:", e)
+    try:
+        call = twilio_client.calls.create(
+            to=TWILIO_TO,
+            from_=TWILIO_FROM,
+            twiml='<Response><Say>This is an emergency alert. A person has entered the danger zone.</Say></Response>'
+        )
+        print("Call initiated:", call.sid)
+    except Exception as e:
+        print("Call failed:", e)
 
 @socketio.on('sos_triggered')
 def handle_sos_triggered(data):
-    """Handle SOS alert triggered after 5-second countdown"""
-    message = data.get('message', 'SOS Alert')
-    location = data.get('location', None)
-    
-    print(f"🚨 {message}")
-    if location:
-        print(f"Location: {location['latitude']}, {location['longitude']}")
-    
-    # Trigger emergency actions
+    print("SOS event received via SocketIO.")
     threading.Thread(target=buzz_alarm).start()
     threading.Thread(target=make_phone_call).start()
-    
-    # Broadcast SOS alert to all connected clients
-    socketio.emit('sos_alert', {
-        'message': message,
-        'location': location,
-        'timestamp': time.time()
-    })
 
 @socketio.on('update_polygon')
 def handle_polygon_update(data):
@@ -105,7 +88,7 @@ def handle_polygon_clear(_):
     print("Polygon cleared")
 
 def detect_and_stream():
-    global alert_sent, alarm_triggered
+    global alert_sent
     cap = cv2.VideoCapture(CAMERA_URL)
     if not cap.isOpened():
         print("Camera not accessible.")
@@ -121,7 +104,6 @@ def detect_and_stream():
         person_count = 0
         alarm_triggered = False
 
-        # Determine polygon
         current_polygon = user_polygon_polygon if use_user_polygon else default_zone_polygon
         current_coords = user_polygon_coords if use_user_polygon else default_zone_coords
 
@@ -156,7 +138,6 @@ def detect_and_stream():
                         cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
             if not alert_sent:
                 threading.Thread(target=buzz_alarm).start()
-                threading.Thread(target=make_phone_call).start()
                 alert_sent = True
         else:
             alert_sent = False

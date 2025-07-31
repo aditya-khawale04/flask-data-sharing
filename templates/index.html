@@ -261,17 +261,17 @@
 
       <div class="right-box">
         <!-- <h2>Persons Detected: <span id="count">0</span></h2> -->
-        <h2 class="alert" id="alert-text">SAFE</h2>
+        <!-- <h2 class="alert">SAFE</h2> -->
         <div class="btn" id="alarmBtn">Alert System is OFF</div>
         <div class="btn sos-btn" id="sosBtn">🚨 Send SOS Alert</div>
       </div>
     </div>
     <div class="card-container">
       <!-- Card 1: Danger Zone -->
-      <div class="status-card danger">
+      <div class="status-card danger" id="danger-card">
         <div class="icon"><i class="fas fa-shield-alt"></i></div>
         <div class="label">Detected Zone</div>
-        <div class="value">Danger</div>
+        <div class="value" id="alert-text">Danger</div>
       </div>
 
       <!-- Card 2: People Detected -->
@@ -310,6 +310,7 @@
     const clearBtn = document.getElementById("clearBtn");
     const alarmBtn = document.getElementById("alarmBtn");
     const sosBtn = document.getElementById("sosBtn");
+    const dangerCard = document.getElementById("danger-card");
 
     // SOS functionality
     function startSOSCountdown() {
@@ -467,8 +468,9 @@
     socket.on("video_frame", (data) => {
       video.src = "data:image/jpeg;base64," + data.image;
       countText.innerText = `${data.count}`;
-      alertText.innerText = data.alert ? "ALERT: Person Outside Zone" : "SAFE";
-      alertText.style.color = data.alert ? "red" : "lime";
+      alertText.innerText = data.alert ? "Danger" : "Safe";
+      dangerCard.style.backgroundColor = data.alert ? "rgba(255, 0, 0, 0.05)" : "rgba(0, 255, 0, 0.1)";
+      dangerCard.style.color = data.alert ? "rgba(255, 0, 0, 1)" : "rgba(0, 255, 0, 1)";
       if (isAlertSysOn && data.alert) {
         body.style.backgroundColor = "red";
         audio.play();
